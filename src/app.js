@@ -1,14 +1,10 @@
 // src/app.js
 const express = require('express');
-
 const cors = require('cors');
 const morgan = require('morgan');
 const connectDB = require('./config/dbConnect');
 const dotenv = require('dotenv')
 const Routes = require('./routes/user')
-
-
-
 const config = require('./config/config');
 
 // Use the config values

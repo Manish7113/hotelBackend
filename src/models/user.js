@@ -22,8 +22,22 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       minlength: 8,
-      select: false, // Exclude password field when querying
+      validate: {
+        validator: function(value) {
+          return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/.test(value);
+        },
+        message: 'Password must contain at least one lowercase letter, one uppercase letter, and one number',
+      },
+      select: false, // Exclude password field when querying  
     },
+  
+      
+    role : {
+      type : String,
+      required : true,
+      lowercase : true,
+      trim : true,
+    }
   },
   {
     timestamps: true,

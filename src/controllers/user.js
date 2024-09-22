@@ -3,10 +3,10 @@ const User = require('../models/user');
 
 exports.createUser = async (req, res, next) => {
     try {
-      const { name, email, password } = req.body;
+      const { name, email, password, role} = req.body;
   
       // Simple validation
-      if (!name || !email || !password) {
+      if (!name || !email || !password ||!role) {
         return res.status(400).json({
           success: false,
           message: 'Please provide all required fields',
@@ -25,6 +25,7 @@ exports.createUser = async (req, res, next) => {
       const user = await User.create({
         name,
         email,
+        role,
         password, // In real apps, hash this before saving
       });
   
@@ -35,6 +36,7 @@ exports.createUser = async (req, res, next) => {
           name: user.name,
           email: user.email,
           createdAt: user.createdAt,
+          role : user.role,
         },
       });
     } catch (error) {
@@ -78,7 +80,7 @@ exports.getUserById = async (req, res, next) => {
 
 exports.updateUser = async (req, res, next) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, role } = req.body;
 
     const user = await User.findById(req.params.id);
 
@@ -91,6 +93,7 @@ exports.updateUser = async (req, res, next) => {
 
     user.name = name || user.name;
     user.email = email || user.email;
+    user.role = role || user.role;
 
     const updatedUser = await user.save();
 
@@ -108,10 +111,9 @@ exports.updateUser = async (req, res, next) => {
   }
 };
 
-
 exports.deleteUser = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findByIdAndDelete(req.params.id);
 
     if (!user) {
       return res.status(404).json({
@@ -119,9 +121,6 @@ exports.deleteUser = async (req, res, next) => {
         message: 'User not found',
       });
     }
-
-    await user.remove();
-
     res.status(200).json({
       success: true,
       message: 'User removed',

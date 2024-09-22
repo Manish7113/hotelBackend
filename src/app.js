@@ -15,7 +15,6 @@ const port = config.DB_HOST;
 // Load environment variables
 dotenv.config();
 
-console.log('process the env file ' , process.env.DB_HOST)
 
 // Connect to MongoDB
 connectDB();

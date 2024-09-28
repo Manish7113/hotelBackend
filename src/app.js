@@ -1,41 +1,25 @@
-// src/app.js
-const express = require('express');
-const cors = require('cors');
-const morgan = require('morgan');
-const connectDB = require('./config/dbConnect');
-const dotenv = require('dotenv')
-const Routes = require('./routes/user')
-const config = require('./config/config');
+const express = require("express");
+const mongoose = require("mongoose");
+const { databaseUrl } = require("./config/config");
+const routes = require("./routes/index");
+const connectToDatabase = require("./dbConnect/dbConnect");
+// const routes = require("./routes");
 
-// Use the config values
-const port = config.DB_HOST;
-  
- 
-
-// Load environment variables
-dotenv.config();
-
-
-// Connect to MongoDB
-connectDB();
 
 const app = express();
 
-// Middleware
-app.use(express.json()); // Body parser
-app.use(cors()); // Enable CORS
-app.use(morgan('dev')); // HTTP request logger
+app.use(express.json());
+connectToDatabase(databaseUrl);
 
-// Routes
-app.use('/user', Routes);
+app.use("/", routes);
 
 
-// Error Handling Middleware
-// app.use(errorHandler);
+// mongoose
+//   .connect(databaseUrl)
+//   .then(() => console.log("MongoDB connected"))
+//   .catch((err) => console.log("Database connection error:", err));
 
-const PORT = process.env.PORT || 5000;
+// Use the item routes
+// app.use("/", routes);
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
- 
-});
+module.exports = app;

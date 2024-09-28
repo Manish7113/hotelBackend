@@ -1,133 +1,173 @@
-
+// controllers/authController.js
 const User = require('../models/user');
+const jwt = require('jsonwebtoken');
 
-exports.createUser = async (req, res, next) => {
-    try {
-      const { name, email, password, role} = req.body;
+// Generate JWT token
+const generateToken = (userId) => {
+  const token = jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
+  return token;
+};
+
+// for creating user
+const addUser = async (req,res, active) => {
+  const { name, email, password, role } = req.body;
+  const user = await User.create({ name, email, password , role, isActive : active});
+
+  let token;
+  if(active)
+  {
+    token = generateToken(user._id);
+  }
+
+  if(token)
+  {
+    await User.findByIdAndUpdate(user._id, {token : token},  {
+      new: true,
+      runValidators: true,
+    })
+    console.log('token stored succesfully')
+  }
   
-      // Simple validation
-      if (!name || !email || !password ||!role) {
-        return res.status(400).json({
-          success: false,
-          message: 'Please provide all required fields',
-        });
+
+ return res.status(201).json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role : user.role,
+    token: active === true ? token : null,
+    Message : (active === true) ? "Welcome Admin" : 'Your Request Is Sent To The Admin for Approval'
+  });
+  
+};
+
+
+// @desc Register a new user
+// @route POST /api/auth/signup
+const registerUser = async (req, res) => {
+  
+  const {  email, role } = req.body;
+
+  try {
+
+
+    // Check if the user already exists
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    if(role === 'admin')
+    {
+      const existsAdmin = await User.findOne({role : 'admin'});
+      if(!existsAdmin)
+      {
+        addUser(req, res, true);
       }
-  
-      // Check if user exists
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        return res.status(400).json({
-          success: false,
-          message: 'User already exists',
-        });
+      else
+      {
+        addUser(req, res, false);
+        
       }
+    }
+    else
+    {
+      addUser(req, res, false);
+    }
+
+
+   
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc Authenticate user (Sign-in)
+// @route POST /api/auth/signin
+const authUser = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // Check if the user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: 'User not found ' });
+    }
+
+    
+
+    // Validate password
+    if (user && (await user.matchPassword(password))) {
+
+      if(user?.isActive === false)
+        {
+         return res.status(200).json({ message: 'Please wait or talk to admin to approve your request' });
+        }
+        else{
+          return res.json({
+             _id: user._id,
+             name: user.name,
+             email: user.email,
+             isActive : user.isActive,
+             token: generateToken(user._id),
+           });
+
+        }
+      // Send back a token and user details
+    } else {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const updateUser = async (req, res) =>{
   
-      const user = await User.create({
-        name,
-        email,
-        role,
-        password, // In real apps, hash this before saving
-      });
-  
-      res.status(201).json({
-        success: true,
-        data: {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          createdAt: user.createdAt,
-          role : user.role,
-        },
-      });
-    } catch (error) {
-      next(error);
-    }
-  };
-
-exports.getUsers = async (req, res, next) => {
   try {
-    const users = await User.find().select('-password');
-    res.status(200).json({
-      success: true,
-      count: users.length,
-      data: users,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-
-exports.getUserById = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.params.id).select('-password');
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
+    const existingUser = await User.findById(req.params.id);
+    if(!existingUser || (existingUser.role === 'admin' && existingUser.isActive === true)) {
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    res.status(200).json({
-      success: true,
-      data: user,
+    const user = await User.findByIdAndUpdate(req.params.id, {
+      name: req.body.name || existingUser.name,
+      email: req.body.email ||  existingUser.email,
+      password: req.body.password ||  existingUser.password,
+      role: req.body.role || existingUser.role,
+      isActive : req.body.isActive ||  req.body.isActive
+    }, {
+      new: true,
+      runValidators: true,
     });
+    
+    return res.status(200).json(user);
   } catch (error) {
-    next(error);
+    return res.status(500).json({ message: error.message });
   }
-};
+}
 
-exports.updateUser = async (req, res, next) => {
+
+const getUserApprovalRequest = async (req, res) =>{
   try {
-    const { name, email, role } = req.body;
-
-    const user = await User.findById(req.params.id);
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
+    const items = await User.find({isActive : false , role : req.body.role});
+    if(!items.length) { 
+      return res.status(404).json({ message: "No Approval Request Available" });
     }
-
-    user.name = name || user.name;
-    user.email = email || user.email;
-    user.role = role || user.role;
-
-    const updatedUser = await user.save();
-
-    res.status(200).json({
-      success: true,
-      data: {
-        _id: updatedUser._id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        updatedAt: updatedUser.updatedAt,
-      },
-    });
+    res.status(200).json(items); // Respond with the list of items
   } catch (error) {
-    next(error);
+    res.status(500).json({ message: error.message }); // Handle server errors
   }
-};
+}
 
-exports.deleteUser = async (req, res, next) => {
+
+const getUser = async (req, res) =>{
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
-    }
-    res.status(200).json({
-      success: true,
-      message: 'User removed',
-    });
+    const items = await User.find(); // Retrieve all items from the database
+    res.status(200).json(items); // Respond with the list of items
   } catch (error) {
-    next(error);
+    res.status(500).json({ message: error.message }); // Handle server errors
   }
-};
+}
 
+module.exports = { registerUser, authUser ,updateUser,getUser,getUserApprovalRequest};
 

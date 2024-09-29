@@ -3,9 +3,9 @@ const TableSchema = require("../models/table");
 exports.createTable = async (req, res) => {
   try {
     const table = await TableSchema.create(req.body);
-    res.status(201).json(table);
+    return res.status(201).json(table);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
 
@@ -18,9 +18,9 @@ exports.updateTable = async (req, res) => {
     if (!table) {
       return res.status(404).json({ message: "Table not found" });
     }
-    res.status(200).json(table);
+   return res.status(200).json(table);
   } catch (error) {
-    res.status(500).json({
+   return res.status(500).json({
       message: error.message,
     });
   }
@@ -32,9 +32,9 @@ exports.deleteTable = async (req, res) => {
     if (!table) {
       return res.status(404).json({ message: "Table not found" });
     }
-    res.status(200).json(table);
+   return  res.status(200).json(table);
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: error.message,
     });
   }
@@ -43,9 +43,9 @@ exports.deleteTable = async (req, res) => {
 exports.getAllTables = async (req, res) => {
   try {
     const tables = await TableSchema.find();
-    res.status(200).json(tables);
+    return res.status(200).json(tables);
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: error.message,
     });
   }
@@ -57,8 +57,24 @@ exports.getById = async (req, res) => {
     if (!table) {
       return res.status(404).json({ message: "Table not found" });
     }
-    res.status(201).json(table);
+   return  res.status(201).json(table);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
+
+exports.getUnoccupiedTable = async(req, res) =>{
+  try{
+    const unOccupiedTables = await TableSchema.find({isOccupied : false})
+    if(!unOccupiedTables.length)
+    {
+      return res.status(201).json({message : 'No tables Avaiable'})
+
+    }
+    return res.status(200).json(unOccupiedTables)
+  }
+  catch(error)
+  {
+    return res.status(500).json({message : error.message})
+  }
+}

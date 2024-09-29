@@ -10,4 +10,4 @@ router.post('/',protect,roleAuthorization('admin'), createItem);
 router.put('/:id',protect,roleAuthorization('admin'), updateItem);
 router.delete('/:id',protect,roleAuthorization('admin'), deleteItem);
 
-module.exports = router;
+module.exports = router;    

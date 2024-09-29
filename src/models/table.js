@@ -3,7 +3,8 @@ const TableSchema = new mongoose.Schema(
   {
     tableNumber: { type: String, required: true, unique: true, trim: true },
     tableCapacity: { type: Number, required: true },
-    isActive: { type: Boolean, default: true },
+    isOccupied: { type: Boolean, default: false },
+    currentOrder : {type : String, default : null, unique : false},
   },
   { timestamps: true }
 );

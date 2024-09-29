@@ -7,7 +7,8 @@ const OrderSchema = new mongoose.Schema(
       ref: "Table", // This references the 'Table' collection
       required: true,
     },
-
+    billPaid : {type : Boolean, default : false},
+    
     items: [
       {
         item: {
